@@ -80,7 +80,7 @@ def createModel(emb_size):
     #net = kl.GlobalAveragePooling2D(name='gap')(net)
     net = kl.Dropout(0.5)(net)
     net = kl.Dense(emb_size,activation='relu',name='t_emb_1')(net)
-    net = kl.Lambda(lambda  x: K.l2_normalize(x,axis=1))(net)
+    net = kl.Lambda(lambda  x: K.l2_normalize(x,axis=1), name='t_emb_1_l2norm')(net)
 
     # model creation
     base_model = Model(resnet_model.input, net, name="base_model")
@@ -141,7 +141,7 @@ def euclidean_distance(vects):
 # loads an image and preprocesses
 def t_read_image(loc):
     t_image = cv2.imread(loc)
-    t_image = imresize(t_image, (T_G_HEIGHT,T_G_WIDTH))
+    t_image = cv2.resize(t_image, (T_G_HEIGHT,T_G_WIDTH))
     t_image = t_image.astype("float32")
     t_image = keras.applications.resnet50.preprocess_input(t_image, data_format='channels_last')
 
@@ -176,6 +176,64 @@ def file_numlines(fn):
 
 
 def main(argv):
+
+    if len(argv) < 2:
+        print 'Usage: \n\t -learn <Train Anchors (TXT)> <Train Positives (TXT)> <Train Negatives (TXT)> <Val Anchors (TXT)> <Val Positives (TXT)> <Val Negatives (TXT)> <embedding size> <batch size> <num epochs> <output model prefix> \n\t -extract <Model Prefix> <Input Image List (TXT)> <Output File (TXT)> \n\t\tBuilds and scores a triplet-loss model '
+        return
+
+    if 'learn' in argv[0]:
+        learn(argv[1:])
+    elif 'extract' in argv[0]:
+        extract(argv[1:])    
+
+    return
+
+
+def extract(argv):
+
+    if len(argv) < 3:
+        print 'Usage: \n\t <Model Prefix> <Input Image List (TXT)> <Output File (TXT)> \n\t\tExtracts triplet-loss model'
+        return
+
+    modelpref = argv[0]
+    imglist = argv[1]
+    outfile = argv[2]
+
+    with open(modelpref + '.json', "r") as json_file:
+        model_json = json_file.read()
+
+    loaded_model = keras.models.model_from_json(model_json)
+    loaded_model.load_weights(modelpref + '.h5')
+
+    base_model = loaded_model.get_layer('base_model')
+
+    # create a new single input
+    input_shape=(T_G_WIDTH,T_G_HEIGHT,T_G_NUMCHANNELS)
+    input_single = kl.Input(shape=input_shape, name='input_single')
+    
+    # create a new model without the triple loss
+    net_single = base_model(input_single)
+    model = Model(input_single, net_single, name='embedding_net')
+
+    chunksize = 1000
+    total_img = file_numlines(imglist)
+    total_img_ch = int(np.ceil(total_img / float(chunksize)))
+
+    with open(outfile, 'w') as f_handle:
+
+        for i in range(0, total_img_ch):
+            imgs = t_read_image_list(imglist, i*chunksize, chunksize)
+
+            vals = model.predict(imgs)
+    
+            np.savetxt(f_handle, vals)
+
+
+    return
+
+
+
+def learn(argv):
     
     if len(argv) < 10:
         print 'Usage: \n\t <Train Anchors (TXT)> <Train Positives (TXT)> <Train Negatives (TXT)> <Val Anchors (TXT)> <Val Positives (TXT)> <Val Negatives (TXT)> <embedding size> <batch size> <num epochs> <output model> \n\t\tLearns triplet-loss model'
@@ -254,7 +312,15 @@ def main(argv):
         print 'Validation Results: ' + str(val_res)
 
     print 'Saving model ...'
+
+    # Save the model and weights
     model.save(outpath + '.h5')
+
+    # Due to some remaining Keras bugs around loading custom optimizers
+    # and objectives, we save the model architecture as well
+    model_json = model.to_json()
+    with open(outpath + '.json', "w") as json_file:
+        json_file.write(model_json)
 
     return
 
