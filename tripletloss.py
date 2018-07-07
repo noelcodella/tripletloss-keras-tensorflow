@@ -76,9 +76,9 @@ def createModel(emb_size):
 
     # New Layers over ResNet50
     net = resnet_model.output
-    net = kl.Flatten(name='flatten')(net)
-    #net = kl.GlobalAveragePooling2D(name='gap')(net)
-    net = kl.Dropout(0.5)(net)
+    #net = kl.Flatten(name='flatten')(net)
+    net = kl.GlobalAveragePooling2D(name='gap')(net)
+    #net = kl.Dropout(0.5)(net)
     net = kl.Dense(emb_size,activation='relu',name='t_emb_1')(net)
     net = kl.Lambda(lambda  x: K.l2_normalize(x,axis=1), name='t_emb_1_l2norm')(net)
 
@@ -108,10 +108,13 @@ def createModel(emb_size):
 
     # Variable Learning Rate per Layers
     lr_mult_dict = {}
+    last_layer = ''
     for layer in resnet_model.layers:
         # comment this out to refine earlier layers
         # layer.trainable = False  
+        # print layer.name
         lr_mult_dict[layer.name] = 1
+        # last_layer = layer.name
     lr_mult_dict['t_emb_1'] = 100
 
     base_lr = 0.0001
