@@ -1,6 +1,9 @@
 # Noel C. F. Codella
 # Example Triplet Loss Code for Keras / TensorFlow
 
+# Implementing Improved Triplet Loss from:
+# Zhang et al. "Tracking Persons-of-Interest via Adaptive Discriminative Features" ECCV 2016
+
 # Got help from multiple web sources, including:
 # 1) https://stackoverflow.com/questions/47727679/triplet-model-for-image-retrieval-from-the-keras-pretrained-network
 # 2) https://ksaluja15.github.io/Learning-Rate-Multipliers-in-Keras/
@@ -98,9 +101,10 @@ def createModel(emb_size):
     # The Lamda layer produces output using given function. Here its Euclidean distance.
     positive_dist = kl.Lambda(euclidean_distance, name='pos_dist')([net_anchor, net_positive])
     negative_dist = kl.Lambda(euclidean_distance, name='neg_dist')([net_anchor, net_negative])
+    tertiary_dist = kl.Lambda(euclidean_distance, name='ter_dist')([net_positive, net_negative])
 
     # This lambda layer simply stacks outputs so both distances are available to the objective
-    stacked_dists = kl.Lambda(lambda vects: K.stack(vects, axis=1), name='stacked_dists')([positive_dist, negative_dist])
+    stacked_dists = kl.Lambda(lambda vects: K.stack(vects, axis=1), name='stacked_dists')([positive_dist, negative_dist, tertiary_dist])
 
     model = Model([input_anchor, input_positive, input_negative], stacked_dists, name='triple_siamese')
 
@@ -128,7 +132,7 @@ def createModel(emb_size):
 
 def triplet_loss(y_true, y_pred):
     margin = K.constant(1)
-    return K.mean(K.maximum(K.constant(0), K.square(y_pred[:,0,0]) - K.square(y_pred[:,1,0]) + margin))
+    return K.mean(K.maximum(K.constant(0), K.square(y_pred[:,0,0]) - 0.5*(K.square(y_pred[:,1,0])+K.square(y_pred[:,2,0])) + margin))
 
 def accuracy(y_true, y_pred):
     return K.mean(y_pred[:,0,0] < y_pred[:,1,0])
