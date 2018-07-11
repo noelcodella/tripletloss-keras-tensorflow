@@ -2,7 +2,7 @@ from keras.legacy import interfaces
 import keras.backend as K
 from keras.optimizers import Optimizer
 
-# Taken from https://ksaluja15.github.io/Learning-Rate-Multipliers-in-Keras/
+# Taken, with permission, from https://ksaluja15.github.io/Learning-Rate-Multipliers-in-Keras/
 
 class LR_SGD(Optimizer):
     """Stochastic gradient descent optimizer.
