@@ -307,7 +307,7 @@ def learn(argv):
 
             # Weight of current validation measurement. 
             # if loaded expected number of items, this will be 1.0, otherwise < 1.0, and > 0.0.
-            w = anchors_v.shape[0] / chunksize
+            w = float(anchors_v.shape[0]) / float(chunksize)
             total_w = total_w + w
 
             curval = model.evaluate([anchors_v, positives_v, negatives_v], Y_val, batch_size=batch)
