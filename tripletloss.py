@@ -284,7 +284,7 @@ def learn(argv):
             anchors_t = t_read_image_list(in_t_a, t*chunksize, chunksize)
             positives_t = t_read_image_list(in_t_b, t*chunksize, chunksize)
             negatives_t = t_read_image_list(in_t_c, t*chunksize, chunksize)
-            Y_train = np.random.randint(2, size=(1,2,anchors_t.shape[0])).T
+            Y_train = np.random.randint(2, size=(1,3,anchors_t.shape[0])).T
 
             print 'Starting to fit ...'
             # This method does NOT use data augmentation
@@ -303,7 +303,7 @@ def learn(argv):
             anchors_v = t_read_image_list(in_v_a, v*chunksize, chunksize)
             positives_v = t_read_image_list(in_v_b, v*chunksize, chunksize)
             negatives_v = t_read_image_list(in_v_c, v*chunksize, chunksize)
-            Y_val = np.random.randint(2, size=(1,2,anchors_v.shape[0])).T
+            Y_val = np.random.randint(2, size=(1,3,anchors_v.shape[0])).T
 
             # Weight of current validation measurement. 
             # if loaded expected number of items, this will be 1.0, otherwise < 1.0, and > 0.0.
